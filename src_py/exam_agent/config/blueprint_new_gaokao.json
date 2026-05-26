@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "name": "new_gaokao_math_blueprint",
+    "version": "2026-05-26",
+    "notes": "基于2024后新课标卷题量变化与历年真题分布经验配置；可按省份教研策略调整。"
+  },
+  "sections": {
+    "单选题": [
+      {"position": 1, "difficulty": "easy", "knowledge_points": ["集合", "复数", "逻辑用语"]},
+      {"position": 2, "difficulty": "easy", "knowledge_points": ["函数", "不等式"]},
+      {"position": 3, "difficulty": "easy", "knowledge_points": ["三角函数"]},
+      {"position": 4, "difficulty": "easy", "knowledge_points": ["平面向量"]},
+      {"position": 5, "difficulty": "medium", "knowledge_points": ["概率", "统计"]},
+      {"position": 6, "difficulty": "medium", "knowledge_points": ["立体几何", "空间向量"]},
+      {"position": 7, "difficulty": "medium_hard", "knowledge_points": ["数列", "解析几何", "圆锥曲线"]},
+      {"position": 8, "difficulty": "hard", "knowledge_points": ["导数", "最值", "综合"]}
+    ],
+    "多选题": [
+      {"position": 9, "difficulty": "medium", "knowledge_points": ["函数图像", "方程与不等式"]},
+      {"position": 10, "difficulty": "medium_hard", "knowledge_points": ["立体几何", "概率统计", "向量"]},
+      {"position": 11, "difficulty": "hard", "knowledge_points": ["导数", "圆锥曲线", "综合"]}
+    ],
+    "填空题": [
+      {"position": 12, "difficulty": "medium", "knowledge_points": ["三角函数", "向量", "数列", "概率统计"]},
+      {"position": 13, "difficulty": "medium_hard", "knowledge_points": ["立体几何", "解析几何", "函数"]},
+      {"position": 14, "difficulty": "hard", "knowledge_points": ["导数", "圆锥曲线", "创新情境"]}
+    ],
+    "解答题": [
+      {"position": 15, "difficulty": "medium", "knowledge_points": ["三角函数", "解三角形"]},
+      {"position": 16, "difficulty": "medium", "knowledge_points": ["概率统计", "数据分析"]},
+      {"position": 17, "difficulty": "medium_hard", "knowledge_points": ["立体几何", "空间向量", "证明"]},
+      {"position": 18, "difficulty": "hard", "knowledge_points": ["解析几何", "圆锥曲线"]},
+      {"position": 19, "difficulty": "hard", "knowledge_points": ["导数", "函数证明", "最值", "压轴"]}
+    ]
+  }
+}

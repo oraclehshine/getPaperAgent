@@ -1,0 +1,150 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Math Exam Agent</title>
+  <style>
+    body{font-family:"Microsoft YaHei",sans-serif;max-width:960px;margin:24px auto;padding:0 12px;line-height:1.6}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    input,textarea,button{font-size:14px}
+    textarea{width:100%;min-height:100px}
+    .box{border:1px solid #ddd;border-radius:8px;padding:12px;margin-top:12px}
+    .muted{color:#666}
+    .ok{color:#0a7d2c}
+    .err{color:#b3261e}
+    .qa{background:#fafafa;padding:8px;border-radius:6px;margin-top:8px}
+    .link{display:inline-block;margin-right:12px}
+  </style>
+</head>
+<body>
+  <h1>数学组卷 Agent（多轮会话）</h1>
+  <div class="muted">支持自然语言输入，缺字段会自动追问，齐全后生成含图 PDF。</div>
+
+  <div class="box">
+    <div class="row">
+      <label>Session ID:</label>
+      <input id="sessionId" style="width:360px" placeholder="首次可留空，系统自动生成" />
+      <button id="clearBtn">清空会话</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label>考试模式</label>
+      <select id="examMode">
+        <option value="">自动识别</option>
+        <option value="new_gaokao">新高考（19题）</option>
+        <option value="old_gaokao">老高考（22题）</option>
+      </select>
+      <label>难度</label>
+      <select id="difficulty">
+        <option value="">自动识别</option>
+        <option value="基础">基础</option>
+        <option value="中等">中等</option>
+        <option value="中高">中高</option>
+        <option value="冲刺">冲刺</option>
+      </select>
+      <label>时长(分钟)</label>
+      <input id="duration" type="number" min="30" max="180" value="120" style="width:100px" />
+    </div>
+    <div style="margin-top:8px">
+      <textarea id="userText" placeholder="例如：我要高三数学，新高考，导数和圆锥曲线薄弱，目标110分，120分钟，中高难度"></textarea>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="sendBtn">发送</button>
+      <label><input type="checkbox" id="renderPdf" checked /> 生成PDF</label>
+      <span id="status" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="box">
+    <h3>会话输出</h3>
+    <div id="result" class="qa muted">等待输入...</div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function api(path, opts={}) {
+      const r = await fetch(path, {
+        method: opts.method || 'GET',
+        headers: {'Content-Type': 'application/json'},
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      });
+      const data = await r.json().catch(()=>({}));
+      if (!r.ok) throw data;
+      return data;
+    }
+
+    function render(data) {
+      const out = [];
+      if (data.session_id) out.push(`<div><b>session_id:</b> ${data.session_id}</div>`);
+
+      if (data.ok === false) {
+        out.push('<div class="err"><b>信息未补齐，需继续补充：</b></div>');
+        (data.next_questions || []).forEach(q => out.push(`<div>• ${q}</div>`));
+      }
+
+      if (data.ok === true) {
+        out.push('<div class="ok"><b>组卷成功</b></div>');
+        const o = data.outputs || {};
+        if (o.paper_json) out.push(`<a class="link" href="/file?path=${encodeURIComponent(o.paper_json)}" target="_blank">paper.json</a>`);
+        if (o.paper_md) out.push(`<a class="link" href="/file?path=${encodeURIComponent(o.paper_md)}" target="_blank">paper.md</a>`);
+        if (o.paper_html) out.push(`<a class="link" href="/file?path=${encodeURIComponent(o.paper_html)}" target="_blank">paper.html</a>`);
+        if (o.paper_pdf) out.push(`<a class="link" href="/file?path=${encodeURIComponent(o.paper_pdf)}" target="_blank">下载 paper.pdf</a>`);
+      }
+
+      if (data.parsed_request) {
+        out.push('<hr/><b>解析到的结构化请求：</b>');
+        out.push(`<pre>${JSON.stringify(data.parsed_request, null, 2)}</pre>`);
+      }
+      if (data.merged_request) {
+        out.push('<b>会话合并后的请求：</b>');
+        out.push(`<pre>${JSON.stringify(data.merged_request, null, 2)}</pre>`);
+      }
+
+      $('result').innerHTML = out.join('') || '无输出';
+    }
+
+    $('sendBtn').onclick = async () => {
+      const userText = $('userText').value.trim();
+      if (!userText) return;
+      $('status').textContent = '处理中...';
+      try {
+        const body = {
+          user_text: userText,
+          session_id: $('sessionId').value.trim() || null,
+          request_patch: {
+            subject: 'math',
+            exam_mode: $('examMode').value || null,
+            expectation: {
+              difficulty: $('difficulty').value || null,
+              paper_length_min: Number($('duration').value) || null
+            }
+          },
+          out_dir: 'E:/Agent-do/code/output_py_api',
+          bank_file: 'E:/Agent-do/doc/math/exports/math_rag_questions.jsonl',
+          render_pdf: $('renderPdf').checked
+        };
+        const data = await api('/chat', {method:'POST', body});
+        if (data.session_id) $('sessionId').value = data.session_id;
+        render(data);
+        $('status').textContent = '完成';
+      } catch (e) {
+        $('result').innerHTML = `<div class="err">请求失败</div><pre>${JSON.stringify(e, null, 2)}</pre>`;
+        $('status').textContent = '失败';
+      }
+    };
+
+    $('clearBtn').onclick = async () => {
+      const id = $('sessionId').value.trim();
+      if (!id) return;
+      try {
+        await api(`/session/${encodeURIComponent(id)}`, {method:'DELETE'});
+        $('sessionId').value = '';
+        $('result').innerHTML = '<div class="muted">会话已清空</div>';
+      } catch (e) {
+        $('result').innerHTML = `<div class="err">清空失败</div><pre>${JSON.stringify(e, null, 2)}</pre>`;
+      }
+    };
+  </script>
+</body>
+</html>

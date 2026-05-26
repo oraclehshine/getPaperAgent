@@ -1,0 +1,9 @@
+﻿{
+  "required_fields": ["subject", "study_profile", "expectation", "exam_mode"],
+  "clarification_questions": {
+    "subject": "你要练的是哪个学科？目前仅支持数学。",
+    "study_profile": "请补充你的学习情况：年级、当前水平、薄弱知识点（至少2个）。",
+    "expectation": "请补充你的期望：目标分/目标层次、希望的难度、预计做题时长（分钟）。",
+    "exam_mode": "请确认考试模式：新高考 还是 老高考？"
+  }
+}

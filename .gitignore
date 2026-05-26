@@ -1,0 +1,17 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# Node
+node_modules/
+
+# Build / outputs
+output/
+output_py_api/
+
+# OS
+.DS_Store
+Thumbs.db

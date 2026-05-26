@@ -1,0 +1,6 @@
+﻿fastapi>=0.112.0
+uvicorn>=0.30.5
+langchain>=0.2.14
+langchain-core>=0.2.33
+pydantic>=2.8.2
+playwright>=1.46.0

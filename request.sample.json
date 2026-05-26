@@ -1,0 +1,15 @@
+﻿{
+  "subject": "math",
+  "exam_mode": "new_gaokao",
+  "study_profile": {
+    "grade": "高三",
+    "current_level": "中等",
+    "weak_points": ["导数", "圆锥曲线"],
+    "recent_score": "95/150"
+  },
+  "expectation": {
+    "target": "一模110+",
+    "difficulty": "中高",
+    "paper_length_min": 120
+  }
+}
