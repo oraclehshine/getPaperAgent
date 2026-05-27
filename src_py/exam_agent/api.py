@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .chain import run_chain
-from .db_store import fetch_questions_realtime, has_mojibake_rows
+from .db_store import fetch_question_refs, fetch_questions_realtime, has_mojibake_rows
 from .io_utils import save_json, save_text
 from .rendering import html_to_pdf_sync, render_html, render_markdown
 from .nlp_parse import parse_user_text_to_request
@@ -52,6 +52,14 @@ class ChatPayload(BaseModel):
     bank_file: str = Field(default=str(DEFAULT_BANK))
     use_postgres: bool = Field(default=DEFAULT_USE_POSTGRES)
     render_pdf: bool = True
+
+
+class SubagentQuestionRefsPayload(BaseModel):
+    trace_id: Optional[str] = None
+    user: Dict[str, Any] = Field(default_factory=dict)
+    learning_context: Dict[str, Any] = Field(default_factory=dict)
+    paper_request: Dict[str, Any] = Field(default_factory=dict)
+    extra_context: Dict[str, Any] = Field(default_factory=dict)
 
 
 app = FastAPI(title="Math Exam Agent API", version="0.3.0")
@@ -94,6 +102,43 @@ def get_session(session_id: str) -> Dict[str, Any]:
 def clear_session(session_id: str) -> Dict[str, Any]:
     SESSION_STORE.pop(session_id, None)
     return {"ok": True, "session_id": session_id}
+
+
+@app.post("/v1/subagent/question-refs")
+def subagent_question_refs(payload: SubagentQuestionRefsPayload) -> Dict[str, Any]:
+    subject = (payload.learning_context.get("subject") or "").strip() or "math"
+    weak_points = payload.learning_context.get("weak_points") or []
+    if not isinstance(weak_points, list):
+        weak_points = []
+
+    preferred_types = payload.paper_request.get("preferred_question_types") or []
+    if not isinstance(preferred_types, list):
+        preferred_types = []
+
+    limit = payload.paper_request.get("limit", 80)
+    try:
+        limit = int(limit)
+    except Exception:
+        limit = 80
+    limit = max(1, min(limit, 300))
+
+    try:
+        refs = fetch_question_refs(
+            subject=subject,
+            weak_points=weak_points,
+            preferred_types=preferred_types,
+            limit=limit,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"query_failed: {e}")
+
+    return {
+        "status": "ok",
+        "trace_id": payload.trace_id,
+        "subject": subject,
+        "count": len(refs),
+        "question_refs": refs,
+    }
 
 
 def _run_with_request(

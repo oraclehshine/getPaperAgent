@@ -93,6 +93,60 @@ def fetch_questions_realtime(weak_points: List[str], limit: int = 5000) -> List[
     return rows
 
 
+def fetch_question_refs(
+    subject: str,
+    weak_points: List[str],
+    preferred_types: List[str] | None = None,
+    limit: int = 80,
+) -> List[Dict[str, Any]]:
+    if subject != "math":
+        return []
+
+    like_clauses = []
+    params: List[Any] = []
+    for w in weak_points:
+        like_clauses.append("(coalesce(kaodian_name,'') ILIKE %s OR stem_md ILIKE %s OR coalesce(analysis_md,'') ILIKE %s)")
+        kw = f"%{w}%"
+        params.extend([kw, kw, kw])
+    score_expr = "0"
+    if like_clauses:
+        score_expr = " + ".join([f"CASE WHEN {c} THEN 1 ELSE 0 END" for c in like_clauses])
+
+    type_filter = ""
+    if preferred_types:
+        type_filter = " AND question_type = ANY(%s)"
+        params.append(preferred_types)
+
+    sql = f"""
+    SELECT
+      id,
+      topic,
+      question_no,
+      question_type,
+      kaodian_no,
+      kaodian_name
+    FROM rag_questions
+    WHERE 1=1
+      {type_filter}
+    ORDER BY ({score_expr}) DESC, id ASC
+    LIMIT %s
+    """
+    params.append(limit)
+
+    rows: List[Dict[str, Any]] = []
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            cols = [d[0] for d in cur.description]
+            for rec in cur.fetchall():
+                obj = dict(zip(cols, rec))
+                for k in ("topic", "question_no", "question_type", "kaodian_no", "kaodian_name"):
+                    obj[k] = _repair_mojibake(obj.get(k))
+                obj["source_table"] = "rag_questions"
+                rows.append(obj)
+    return rows
+
+
 def has_mojibake_rows(rows: List[Dict[str, Any]]) -> bool:
     sample = rows[:30]
     bad = 0
