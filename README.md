@@ -9,6 +9,50 @@
 - 子智能体职责：检索题目并返回 `question_refs`
 - 主智能体职责：组卷策略、题目拼装、渲染与 PDF 输出
 
+## 架构图
+
+```mermaid
+flowchart LR
+    A[主智能体] --> B[MCP Client]
+    B --> C[MCP Wrapper<br/>exam_agent.mcp_wrapper]
+    C --> D[HTTP API<br/>/v1/subagent/question-refs]
+    D --> E[(PostgreSQL<br/>rag_questions)]
+    D --> F[JSON Response<br/>question_refs]
+    F --> A
+```
+
+说明：
+
+- 业务能力集中在 HTTP 子服务（检索与返回引用）。
+- MCP Wrapper 只做协议适配与转调，不重复实现检索逻辑。
+- 主智能体拿到 `question_refs` 后自行完成组卷与渲染。
+
+## 调用流程图
+
+```mermaid
+sequenceDiagram
+    participant MA as 主智能体
+    participant MC as MCP Client
+    participant MW as MCP Wrapper
+    participant API as FastAPI 子服务
+    participant PG as PostgreSQL
+
+    MA->>MC: invoke search_question_refs(...)
+    MC->>MW: MCP tool call
+    MW->>API: POST /v1/subagent/question-refs
+    API->>PG: SQL 检索(weak_points/question_type)
+    PG-->>API: rows
+    API-->>MW: {question_refs}
+    MW-->>MC: MCP tool result
+    MC-->>MA: question_refs
+```
+
+说明：
+
+- `question_type` 用于题型筛选（选择/填空/解答）。
+- `kaodian_no/kaodian_name` 用于知识点命中检索。
+- 推荐主智能体透传 `trace_id` 做全链路观测。
+
 ## 核心能力
 
 - PostgreSQL 实时检索
